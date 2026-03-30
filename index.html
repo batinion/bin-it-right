@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f0f13">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Bin It Right — UQ Waste Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#E63946;--red-bg:#fff0f0;--red-border:#f5b8bc;--red-text:#8b1a22;
+  --yellow:#E89C00;--yellow-bg:#fffbef;--yellow-border:#f5d88a;--yellow-text:#7a5000;
+  --green:#22A84A;--green-bg:#f0fbf3;--green-border:#9ed8b0;--green-text:#145c2a;
+  --bg:#f7f5f0;--surface:#ffffff;--border:#e4e0d8;--text:#1a1814;--muted:#8a867c;
+  --radius:18px;--radius-sm:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{height:100%;overflow-x:hidden;background:var(--bg)}
+body{font-family:'DM Sans',sans-serif;color:var(--text);display:flex;flex-direction:column;align-items:center;min-height:100%}
+
+.screen{display:none;flex-direction:column;align-items:center;width:100%;max-width:480px;min-height:100vh}
+.screen.on{display:flex}
+
+/* ─── WELCOME ─── */
+#sw{background:var(--text);color:#f5f2eb;padding:0;justify-content:space-between}
+.sw-top{padding:3rem 1.5rem 1.5rem;text-align:center;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.badge{display:inline-block;border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:5px 14px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,0.5)}
+.sw-top h1{font-family:'Syne',sans-serif;font-size:clamp(3rem,14vw,4.5rem);font-weight:800;line-height:.95;letter-spacing:-.02em}
+.sw-top h1 em{font-style:normal;color:var(--green)}
+.sw-top p{font-size:15px;color:rgba(255,255,255,0.55);line-height:1.65;max-width:280px}
+.bin-trio{display:flex;gap:12px;justify-content:center;padding:8px 0}
+.bt{width:68px;height:76px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.bt span{font-size:11px;font-weight:700;letter-spacing:.08em}
+.bt.r{background:rgba(230,57,70,.15);border:1.5px solid rgba(230,57,70,.4)}.bt.r span{color:#f08080}
+.bt.y{background:rgba(232,156,0,.15);border:1.5px solid rgba(232,156,0,.4)}.bt.y span{color:#f0c060}
+.bt.g{background:rgba(34,168,74,.15);border:1.5px solid rgba(34,168,74,.4)}.bt.g span{color:#70d890}
+.bt-ico{font-size:30px}
+.sw-bottom{padding:1.5rem;width:100%}
+.note{font-size:12px;color:rgba(255,255,255,0.35);text-align:center;margin-bottom:14px}
+.btn-start{width:100%;padding:18px;background:var(--green);color:#fff;border:none;border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:17px;font-weight:800;cursor:pointer;letter-spacing:.02em;transition:opacity .15s}
+.btn-start:active{opacity:.85}
+
+/* ─── GAME ─── */
+#sg{background:var(--bg);gap:0;padding:0}
+.g-header{width:100%;background:var(--surface);border-bottom:1px solid var(--border);padding:13px 18px 12px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:20}
+.g-logo{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--text)}
+.score-row{display:flex;gap:8px}
+.sc{font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px;min-width:52px;text-align:center}
+.sc.c{background:var(--green-bg);color:var(--green-text);border:1px solid var(--green-border)}
+.sc.w{background:var(--red-bg);color:var(--red-text);border:1px solid var(--red-border)}
+.progress{width:100%;height:4px;background:var(--border)}
+.progress-bar{height:100%;background:var(--green);transition:width .5s cubic-bezier(.4,0,.2,1)}
+
+.stage{width:100%;padding:22px 18px 6px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.round-tag{font-size:11px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase}
+
+.item-card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:var(--radius);padding:26px 36px 20px;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  cursor:grab;user-select:none;touch-action:none;
+  width:100%;max-width:260px;
+  transition:opacity .2s,transform .18s,border-color .15s;
+  box-shadow:0 2px 12px rgba(0,0,0,.06);
+}
+.item-card:active{cursor:grabbing}
+.item-card.dragging{opacity:.15;transform:scale(.92)}
+.item-card.selected{border-color:var(--green);box-shadow:0 0 0 3px rgba(34,168,74,.15)}
+.emoji-big{font-size:72px;line-height:1;pointer-events:none}
+.item-label{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;pointer-events:none;text-align:center;color:var(--text)}
+.item-hint{font-size:11px;color:var(--muted);pointer-events:none;letter-spacing:.1em;text-transform:uppercase}
+
+.bins{width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px 14px 6px}
+.bin{
+  border-radius:var(--radius-sm);border:2px dashed;
+  padding:18px 6px 16px;
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  transition:transform .2s,background .15s,border-color .15s,box-shadow .2s;
+  min-height:138px;cursor:pointer;position:relative;overflow:hidden;
+}
+.bin.rb{border-color:var(--red-border)}.bin.yb{border-color:var(--yellow-border)}.bin.gb{border-color:var(--green-border)}
+.bin.hot{transform:scale(1.06);border-style:solid}
+.bin.rb.hot{background:var(--red-bg);border-color:var(--red);box-shadow:0 0 0 3px rgba(230,57,70,.15)}
+.bin.yb.hot{background:var(--yellow-bg);border-color:var(--yellow);box-shadow:0 0 0 3px rgba(232,156,0,.15)}
+.bin.gb.hot{background:var(--green-bg);border-color:var(--green);box-shadow:0 0 0 3px rgba(34,168,74,.15)}
+.bin-emoji{font-size:30px;pointer-events:none}
+.bin-name{font-family:'Syne',sans-serif;font-size:11px;font-weight:800;letter-spacing:.06em;pointer-events:none}
+.bin.rb .bin-name{color:var(--red-text)}.bin.yb .bin-name{color:var(--yellow-text)}.bin.gb .bin-name{color:var(--green-text)}
+.bin-desc{font-size:10px;color:var(--muted);text-align:center;line-height:1.45;pointer-events:none}
+
+.tap-guide{font-size:12px;color:var(--muted);text-align:center;padding:6px 18px 2px;letter-spacing:.04em}
+
+#reason{width:100%;padding:8px 18px 18px;font-size:13px;color:var(--muted);text-align:center;line-height:1.55;min-height:48px;opacity:0;transition:opacity .25s}
+#reason.show{opacity:1}
+
+/* floating ghost for touch */
+#ghost{position:fixed;z-index:9999;pointer-events:none;display:none;flex-direction:column;align-items:center;gap:8px;
+  background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
+  padding:14px 18px 12px;width:140px;transform:rotate(-3deg) scale(1.08);
+  box-shadow:0 16px 40px rgba(0,0,0,.16)}
+#ghost .ge{font-size:44px;line-height:1}
+#ghost .gn{font-size:13px;font-weight:700;color:var(--text);text-align:center;font-family:'Syne',sans-serif}
+
+/* feedback pill */
+#pill{position:fixed;z-index:9999;pointer-events:none;display:none;
+  font-size:14px;font-weight:700;font-family:'Syne',sans-serif;
+  padding:10px 20px;border-radius:999px;transform:translateX(-50%);white-space:nowrap;
+  box-shadow:0 4px 16px rgba(0,0,0,.12)}
+#pill.ok{background:var(--green-bg);color:var(--green-text);border:1.5px solid var(--green-border)}
+#pill.bad{background:var(--red-bg);color:var(--red-text);border:1.5px solid var(--red-border)}
+#pill.warn{background:var(--yellow-bg);color:var(--yellow-text);border:1.5px solid var(--yellow-border)}
+
+/* ─── POST-GAME QUESTIONS ─── */
+#sq{background:var(--text);color:#f5f2eb;padding:0;justify-content:space-between}
+.sq-body{padding:3rem 1.5rem 1.5rem;flex:1;display:flex;flex-direction:column;align-items:center;gap:18px;width:100%}
+.big-num{font-family:'Syne',sans-serif;font-size:clamp(5rem,22vw,7rem);font-weight:800;line-height:1;color:var(--green)}
+.out-of{font-size:16px;color:rgba(255,255,255,0.4);margin-top:-8px}
+.sq-head{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;text-align:center}
+.sq-sub{font-size:14px;color:rgba(255,255,255,0.5);text-align:center;max-width:280px;line-height:1.65}
+.rule{width:100%;height:1px;background:rgba(255,255,255,0.1)}
+.qlabel{font-size:14px;color:rgba(255,255,255,0.6);width:100%;font-weight:500}
+.qlabel small{font-size:12px;color:rgba(255,255,255,0.35);font-weight:400}
+.opts{display:flex;flex-wrap:wrap;gap:10px;width:100%}
+.opt{border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-sm);padding:12px 16px;font-size:14px;
+  color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.06);cursor:pointer;transition:all .15s;
+  min-height:48px;display:flex;align-items:center;font-family:'DM Sans',sans-serif}
+.opt:active{background:rgba(255,255,255,0.12)}
+.opt.sel{background:rgba(34,168,74,.2);border-color:var(--green);color:#90e8a8}
+.sq-bottom{padding:1.5rem;width:100%}
+.btn-report{width:100%;padding:18px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.4);
+  border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius);
+  font-family:'Syne',sans-serif;font-size:17px;font-weight:800;cursor:not-allowed;transition:all .15s}
+.btn-report.ready{background:var(--green);color:#fff;border-color:var(--green);cursor:pointer}
+.btn-report.ready:active{opacity:.85}
+
+/* ─── RESULTS ─── */
+#sr{background:var(--bg);padding:0;gap:0}
+.sr-header{width:100%;background:var(--text);padding:2rem 1.5rem 2rem;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.sr-header .big-num{font-size:clamp(4rem,18vw,6rem)}
+.sr-header p{font-size:14px;color:rgba(255,255,255,0.5);max-width:280px;line-height:1.6}
+.sr-body{width:100%;padding:20px 16px 32px;display:flex;flex-direction:column;gap:14px}
+
+.card{background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border);padding:16px 18px}
+.card-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px}
+.card.danger .card-title{color:var(--red-text)}
+.card.neutral .card-title{color:var(--muted)}
+
+.c-event{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--border);font-size:13px;line-height:1.55;color:var(--muted)}
+.c-event:first-child{border-top:none;padding-top:0}
+.c-event .cem{font-size:22px;flex-shrink:0;line-height:1.2}
+.c-event b{color:var(--text);display:block;font-size:14px}
+.c-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-top:3px}
+.c-tag.contam{background:var(--red-bg);color:var(--red-text)}
+.c-tag.wrong{background:var(--yellow-bg);color:var(--yellow-text)}
+.no-events{font-size:13px;color:var(--green-text);text-align:center;padding:4px 0}
+
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--border);font-size:14px}
+.stat-row:first-child{border-top:none;padding-top:0}
+.stat-row span{color:var(--muted)}
+.stat-row b{color:var(--text);font-weight:500}
+.stat-row b.g{color:var(--green-text)}.stat-row b.r{color:var(--red-text)}
+
+.submit-note{font-size:12px;color:var(--muted);text-align:center;padding:4px 0;min-height:18px}
+.submit-note.ok{color:var(--green-text)}.submit-note.err{color:var(--red-text)}
+
+.btn-again{width:100%;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text);cursor:pointer;transition:background .15s}
+.btn-again:active{background:var(--bg)}
+</style>
+</head>
+<body>
+
+<!-- ── WELCOME ── -->
+<div id="sw" class="screen on">
+  <div class="sw-top">
+    <div class="badge">UQ Waste Behaviour Study</div>
+    <h1>Bin It<br><em>Right</em></h1>
+    <div class="bin-trio">
+      <div class="bt r"><div class="bt-ico">🗑️</div><span>RED</span></div>
+      <div class="bt y"><div class="bt-ico">♻️</div><span>YELLOW</span></div>
+      <div class="bt g"><div class="bt-ico">🌱</div><span>GREEN</span></div>
+    </div>
+    <p>Drag — or tap — 10 items into the right bin. Takes about 2 minutes.</p>
+  </div>
+  <div class="sw-bottom">
+    <p class="note">Two quick questions at the end. Your responses help real research.</p>
+    <button class="btn-start" onclick="startGame()">Start sorting →</button>
+  </div>
+</div>
+
+<!-- ── GAME ── -->
+<div id="sg" class="screen">
+  <div class="g-header">
+    <div class="g-logo">Bin It Right</div>
+    <div class="score-row">
+      <div class="sc c">✓ <span id="cc">0</span></div>
+      <div class="sc w">✗ <span id="wc">0</span></div>
+    </div>
+  </div>
+  <div class="progress"><div class="progress-bar" id="pb" style="width:0%"></div></div>
+
+  <div class="stage">
+    <div class="round-tag" id="rt">Item 1 of 10</div>
+    <div class="item-card" id="card">
+      <div class="emoji-big" id="emo">♻️</div>
+      <div class="item-label" id="lbl">—</div>
+      <div class="item-hint" id="hint">drag to a bin ↓</div>
+    </div>
+  </div>
+
+  <div class="bins">
+    <div class="bin rb" data-bin="red">
+      <div class="bin-emoji">🗑️</div>
+      <div class="bin-name">RED</div>
+      <div class="bin-desc">Landfill<br>non-recyclable</div>
+    </div>
+    <div class="bin yb" data-bin="yellow">
+      <div class="bin-emoji">♻️</div>
+      <div class="bin-name">YELLOW</div>
+      <div class="bin-desc">Recycling<br>plastic, paper, glass</div>
+    </div>
+    <div class="bin gb" data-bin="green">
+      <div class="bin-emoji">🌱</div>
+      <div class="bin-name">GREEN</div>
+      <div class="bin-desc">FOGO organics<br>food & garden</div>
+    </div>
+  </div>
+
+  <div id="reason"></div>
+</div>
+
+<!-- ── POST-GAME QUESTIONS ── -->
+<div id="sq" class="screen">
+  <div class="sq-body">
+    <div class="big-num" id="sqn">0</div>
+    <div class="out-of">out of 10</div>
+    <div class="sq-head" id="sqh">Nice sorting!</div>
+    <div class="sq-sub" id="sqs">Two quick questions before your full report.</div>
+    <div class="rule"></div>
+    <div class="qlabel">How old are you?</div>
+    <div class="opts" id="q-age">
+      <div class="opt" data-v="Under 18" onclick="pick('age',this)">Under 18</div>
+      <div class="opt" data-v="18–24" onclick="pick('age',this)">18–24</div>
+      <div class="opt" data-v="25–34" onclick="pick('age',this)">25–34</div>
+      <div class="opt" data-v="35+" onclick="pick('age',this)">35+</div>
+    </div>
+    <div class="qlabel">Had you heard of FOGO bins before? <small>(green bin for food scraps)</small></div>
+    <div class="opts" id="q-fogo">
+      <div class="opt" data-v="Yes, I use one" onclick="pick('fogo',this)">Yes, I use one</div>
+      <div class="opt" data-v="Heard of it" onclick="pick('fogo',this)">Heard of it</div>
+      <div class="opt" data-v="No" onclick="pick('fogo',this)">No</div>
+      <div class="opt" data-v="Not sure" onclick="pick('fogo',this)">Not sure</div>
+    </div>
+  </div>
+  <div class="sq-bottom">
+    <button class="btn-report" id="brpt" onclick="showResults()">See my full report →</button>
+  </div>
+</div>
+
+<!-- ── RESULTS ── -->
+<div id="sr" class="screen">
+  <div class="sr-header">
+    <div class="big-num" id="rsn">0</div>
+    <div class="out-of">out of 10</div>
+    <p id="rmsg"></p>
+  </div>
+  <div class="sr-body">
+
+    <div class="card danger">
+      <div class="card-title">⚠ Contamination events</div>
+      <div id="clist"></div>
+    </div>
+
+    <div class="card neutral">
+      <div class="card-title">Your session</div>
+      <div class="stat-row"><span>Age group</span><b id="rage">—</b></div>
+      <div class="stat-row"><span>FOGO awareness</span><b id="rfogo">—</b></div>
+      <div class="stat-row"><span>Correct</span><b class="g" id="rcor">—</b></div>
+      <div class="stat-row"><span>Wrong</span><b class="r" id="rwrg">—</b></div>
+      <div class="stat-row"><span>Contamination events</span><b class="r" id="rctm">—</b></div>
+    </div>
+
+    <div class="submit-note" id="subnote"></div>
+    <button class="btn-again" onclick="location.reload()">↩ Play again</button>
+  </div>
+</div>
+
+<!-- floating ghost + pill -->
+<div id="ghost"><div class="ge" id="ge"></div><div class="gn" id="gn"></div></div>
+<div id="pill"></div>
+
+<script>
+// ── PASTE YOUR APPS SCRIPT URL HERE ──────────────────────────
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbwKuRBaH4_YIh5EGBd-fXh0ZR1a1UAXM5P3DG0m6wuup7ekEJair9SB_pUec6VTHBOS/exec";
+// ─────────────────────────────────────────────────────────────
+
+const ITEMS=[
+  {name:"Coffee cup (takeaway)",e:"☕",bin:"red",r:"Plastic-lined cups can't be recycled — landfill only."},
+  {name:"Plastic bottle",e:"🧴",bin:"yellow",r:"Clean plastic bottles go in the yellow recycling bin."},
+  {name:"Banana peel",e:"🍌",bin:"green",r:"Food scraps go in the green FOGO bin."},
+  {name:"Glass jar (empty)",e:"🫙",bin:"yellow",r:"Empty glass jars are accepted in yellow recycling."},
+  {name:"Greasy pizza box",e:"🍕",bin:"red",r:"Grease contaminates recycling — it's landfill."},
+  {name:"Newspaper",e:"📰",bin:"yellow",r:"Clean paper goes in the yellow recycling bin."},
+  {name:"Apple core",e:"🍎",bin:"green",r:"Organic food waste belongs in the green FOGO bin."},
+  {name:"Aluminium can",e:"🥫",bin:"yellow",r:"Rinsed aluminium cans are great recyclables."},
+  {name:"Garden leaves",e:"🍂",bin:"green",r:"Garden organics go in the green FOGO bin."},
+  {name:"Broken ceramic",e:"🪴",bin:"red",r:"Ceramics break recycling equipment — landfill."},
+  {name:"Cardboard box",e:"📦",bin:"yellow",r:"Flatten clean cardboard for the yellow bin."},
+  {name:"Chip wrapper",e:"🍟",bin:"red",r:"Soft plastics aren't accepted in kerbside bins."},
+  {name:"Egg shells",e:"🥚",bin:"green",r:"Eggshells are organic — green FOGO bin."},
+  {name:"Milk carton",e:"🥛",bin:"yellow",r:"Empty milk cartons are recyclable."},
+  {name:"Plastic straw",e:"🥤",bin:"red",r:"Too small for recycling sorters — landfill."},
+  {name:"Food scraps",e:"🍱",bin:"green",r:"All food scraps go in the green FOGO bin."},
+  {name:"Tin foil (clean)",e:"🫕",bin:"yellow",r:"Scrunch clean foil into a ball — it's recyclable."},
+  {name:"Polystyrene cup",e:"🧊",bin:"red",r:"Polystyrene is not accepted in recycling bins."},
+];
+
+let sAge=null,sFogo=null,queue=[],cur=null,correct=0,wrong=0,decisions=[],rnd=0,busy=false,tapMode=false;
+const isMob=()=>/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)||window.innerWidth<600;
+
+function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));document.getElementById(id).classList.add('on');window.scrollTo(0,0)}
+
+function startGame(){
+  correct=0;wrong=0;decisions=[];rnd=0;sAge=null;sFogo=null;tapMode=false;
+  queue=shuffle(ITEMS).slice(0,10);
+  show('sg');
+  document.getElementById('hint').textContent=isMob()?'tap item, then tap a bin ↓':'drag to a bin ↓';
+  next();
+}
+
+function next(){
+  if(!queue.length){goQ();return}
+  cur=queue.shift();rnd++;
+  document.getElementById('emo').textContent=cur.e;
+  document.getElementById('lbl').textContent=cur.name;
+  document.getElementById('rt').textContent=`Item ${rnd} of 10`;
+  document.getElementById('cc').textContent=correct;
+  document.getElementById('wc').textContent=wrong;
+  document.getElementById('pb').style.width=((rnd-1)/10*100)+'%';
+  const c=document.getElementById('card');
+  c.classList.remove('dragging','selected');
+  c.style.opacity='1';
+  document.getElementById('reason').className='';
+  document.getElementById('reason').textContent='';
+  document.querySelectorAll('.bin').forEach(b=>b.classList.remove('hot'));
+  busy=false;tapMode=false;
+}
+
+function drop(binId,px,py){
+  if(!cur||busy)return;
+  busy=true;tapMode=false;
+  document.getElementById('card').classList.remove('selected');
+  document.querySelectorAll('.bin').forEach(b=>b.classList.remove('hot'));
+  const ok=binId===cur.bin;
+  let cf='none';
+  if(!ok){
+    const map={green:{yellow:'organic→recycling',red:'organic→landfill'},yellow:{green:'recyclable→organics',red:'recyclable→landfill'},red:{yellow:'landfill→recycling',green:'landfill→organics'}};
+    cf=map[cur.bin]?.[binId]||'none';
+  }
+  decisions.push({item:cur.name,e:cur.e,correctBin:cur.bin,chosenBin:binId,ok,cf,r:cur.r});
+  if(ok)correct++;else wrong++;
+
+  const pill=document.getElementById('pill');
+  const bad=cf.includes('→recycling')||cf.includes('→organics');
+  pill.textContent=ok?'Correct!':bad?'Contamination!':'Wrong bin';
+  pill.className=ok?'ok':bad?'warn':'bad';
+  pill.style.display='block';
+  pill.style.left=Math.max(70,Math.min(px,window.innerWidth-80))+'px';
+  pill.style.top=Math.max(60,py-50)+'px';
+
+  document.getElementById('reason').textContent=cur.r;
+  document.getElementById('reason').className='show';
+
+  setTimeout(()=>{pill.style.display='none';pill.className='';next();},1700);
+}
+
+// tap-to-select
+document.getElementById('card').addEventListener('click',()=>{
+  if(!cur||busy)return;
+  if(!tapMode){
+    tapMode=true;
+    document.getElementById('card').classList.add('selected');
+    document.querySelectorAll('.bin').forEach(b=>b.classList.add('hot'));
+  } else {
+    tapMode=false;
+    document.getElementById('card').classList.remove('selected');
+    document.querySelectorAll('.bin').forEach(b=>b.classList.remove('hot'));
+  }
+});
+
+document.querySelectorAll('.bin').forEach(bin=>{
+  bin.addEventListener('click',()=>{
+    if(!cur||busy||!tapMode)return;
+    const r=bin.getBoundingClientRect();
+    drop(bin.dataset.bin,r.left+r.width/2,r.top+r.height/2);
+  });
+  bin.addEventListener('dragover',e=>{e.preventDefault();if(!tapMode)bin.classList.add('hot')});
+  bin.addEventListener('dragleave',()=>{if(!tapMode)bin.classList.remove('hot')});
+  bin.addEventListener('drop',e=>{
+    e.preventDefault();if(!tapMode)bin.classList.remove('hot');
+    const r=bin.getBoundingClientRect();
+    drop(bin.dataset.bin,r.left+r.width/2,r.top+20);
+  });
+});
+
+const card=document.getElementById('card');
+card.addEventListener('dragstart',e=>{e.dataTransfer.setData('text','item');setTimeout(()=>card.classList.add('dragging'),0)});
+card.addEventListener('dragend',()=>card.classList.remove('dragging'));
+
+// touch drag
+const ghost=document.getElementById('ghost');
+let tOn=false,tMoved=false;
+card.addEventListener('touchstart',e=>{
+  if(!cur||busy)return;
+  tOn=true;tMoved=false;
+  const t=e.touches[0];
+  document.getElementById('ge').textContent=cur.e;
+  document.getElementById('gn').textContent=cur.name;
+  ghost.style.display='flex';
+  ghost.style.left=(t.clientX-70)+'px';ghost.style.top=(t.clientY-90)+'px';
+  card.classList.add('dragging');
+},{passive:true});
+card.addEventListener('touchmove',e=>{
+  if(!tOn)return;tMoved=true;e.preventDefault();
+  const t=e.touches[0];
+  ghost.style.left=(t.clientX-70)+'px';ghost.style.top=(t.clientY-90)+'px';
+  document.querySelectorAll('.bin').forEach(b=>b.classList.remove('hot'));
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  el?.closest?.('.bin')?.classList.add('hot');
+},{passive:false});
+card.addEventListener('touchend',e=>{
+  if(!tOn)return;tOn=false;
+  ghost.style.display='none';card.classList.remove('dragging');
+  if(!tMoved)return;
+  const t=e.changedTouches[0];
+  document.querySelectorAll('.bin').forEach(b=>b.classList.remove('hot'));
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  const ob=el?.closest?.('.bin');
+  if(ob&&cur&&!busy)drop(ob.dataset.bin,t.clientX,t.clientY);
+});
+
+function goQ(){
+  document.getElementById('pb').style.width='100%';
+  document.getElementById('sqn').textContent=correct;
+  const heads=['','','','','','','','Perfect score! 🏆','Great sorting!','Really solid!','Perfect score! 🏆'];
+  const subs=correct===10?'Flawless run! Two quick questions before your report.':correct>=7?'You clearly know your bins. Two quick questions.':correct>=4?'Some tricky items in there. Two quick questions.':'Harder than it looks, right? Two quick questions.';
+  document.getElementById('sqh').textContent=heads[correct]||'Good effort!';
+  document.getElementById('sqs').textContent=subs;
+  document.querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
+  document.getElementById('brpt').classList.remove('ready');
+  show('sq');
+}
+
+function pick(type,el){
+  document.getElementById('q-'+type).querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  if(type==='age')sAge=el.dataset.v;else sFogo=el.dataset.v;
+  document.getElementById('brpt').classList.toggle('ready',!!(sAge&&sFogo));
+}
+
+function showResults(){
+  if(!sAge||!sFogo)return;
+  const ce=decisions.filter(d=>!d.ok&&d.cf!=='none');
+  const cc=ce.length;
+  document.getElementById('rsn').textContent=correct;
+  document.getElementById('rmsg').textContent=correct===10?'Perfect! You\'re a waste-sorting champion.':correct>=7?'Great work — solid grasp of bin sorting.':correct>=4?'Not bad! A few tricky ones caught you out.':'Waste sorting is harder than it looks — even with FOGO bins around.';
+  document.getElementById('rage').textContent=sAge;
+  document.getElementById('rfogo').textContent=sFogo;
+  document.getElementById('rcor').textContent=correct+'/10';
+  document.getElementById('rwrg').textContent=wrong;
+  document.getElementById('rctm').textContent=cc+' event'+(cc!==1?'s':'');
+
+  const cl=document.getElementById('clist');
+  cl.innerHTML='';
+  if(!ce.length){
+    cl.innerHTML='<div class="no-events">No contamination events — great job!</div>';
+  } else {
+    ce.forEach(d=>{
+      const bad=d.cf.includes('→recycling')||d.cf.includes('→organics');
+      const row=document.createElement('div');
+      row.className='c-event';
+      row.innerHTML=`<span class="cem">${d.e}</span><div><b>${d.item}</b>Put in ${d.chosenBin.toUpperCase()} bin — should be ${d.correctBin.toUpperCase()}<br><span class="c-tag ${bad?'contam':'wrong'}">${bad?'⚠ Contamination':'Wrong bin'}</span></div>`;
+      cl.appendChild(row);
+    });
+  }
+  show('sr');
+  submit(ce,cc);
+}
+
+function submit(ce,cc){
+  const st=document.getElementById('subnote');
+  if(SHEET_URL==='YOUR_APPS_SCRIPT_URL_HERE'){st.className='submit-note err';st.textContent='⚠ Sheet URL not set up yet.';return}
+  st.textContent='Submitting your response…';
+  const wd=decisions.filter(d=>!d.ok);
+  fetch(SHEET_URL,{
+    method:'POST',mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      timestamp:new Date().toISOString(),ageGroup:sAge,fogoAwareness:sFogo,
+      score:correct,wrongCount:wrong,contamCount:cc,
+      wrongDecisions:wd.map(d=>`${d.e} ${d.item}: chose ${d.chosenBin} (correct: ${d.correctBin})`).join(' | ')||'None',
+      contamEvents:ce.map(d=>`${d.e} ${d.item} [${d.cf}]`).join(' | ')||'None',
+      device:/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?'Mobile':'Desktop'
+    })
+  }).then(()=>{st.className='submit-note ok';st.textContent='✓ Response recorded — thank you!'})
+    .catch(()=>{st.className='submit-note err';st.textContent='Could not submit — check connection.'});
+}
+</script>
+</body>
+</html>
