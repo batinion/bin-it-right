@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bin It Right — Live Research Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --green:#22A84A;--green-bg:#f0fbf3;--green-light:#9ed8b0;
+  --red:#E63946;--red-bg:#fff0f0;--red-light:#f5b8bc;
+  --yellow:#E89C00;--yellow-bg:#fffbef;--yellow-light:#f5d88a;
+  --bg:#f7f5f0;--surface:#fff;--border:#e4e0d8;--text:#1a1814;--muted:#8a867c;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:28px 24px 48px}
+
+.top-bar{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:28px}
+.top-bar h1{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;line-height:1}
+.top-bar h1 span{color:var(--green)}
+.live-dot{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--green);animation:pulse 1.8s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.dot.grey{background:var(--muted);animation:none}
+
+/* SETUP BANNER */
+#setup-banner{background:#fff8e8;border:1.5px solid var(--yellow-light);border-radius:var(--radius);padding:16px 20px;margin-bottom:24px;display:none}
+#setup-banner h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--yellow);margin-bottom:6px}
+#setup-banner p{font-size:13px;color:var(--muted);line-height:1.6}
+#setup-banner input{width:100%;margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text)}
+#setup-banner button{margin-top:8px;padding:9px 18px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+
+/* STAT CARDS */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+.stat label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;display:block;margin-bottom:6px}
+.stat .val{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;line-height:1;color:var(--text)}
+.stat .val.g{color:var(--green)}.stat .val.r{color:var(--red)}.stat .val.y{color:var(--yellow)}
+.stat .sub{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* CHARTS GRID */
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:24px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.chart-card h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;margin-bottom:16px;color:var(--text)}
+.chart-card canvas{max-height:220px}
+
+/* CONTAMINATION TABLE */
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.table-card h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:500}
+td{padding:9px 10px;border-bottom:1px solid var(--bg);vertical-align:top;line-height:1.5}
+tr:last-child td{border-bottom:none}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px}
+.tag.c{background:var(--red-bg);color:var(--red)}.tag.w{background:var(--yellow-bg);color:var(--yellow)}
+
+/* FEED */
+.feed-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.feed-card h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;margin-bottom:14px}
+.feed{display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto}
+.feed-row{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg);border-radius:10px;font-size:13px}
+.feed-score{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;min-width:44px;text-align:center}
+.feed-score.high{color:var(--green)}.feed-score.mid{color:var(--yellow)}.feed-score.low{color:var(--red)}
+.feed-meta{flex:1;color:var(--muted);line-height:1.5}
+.feed-meta b{color:var(--text)}
+.feed-time{font-size:11px;color:var(--muted);white-space:nowrap}
+.empty{font-size:13px;color:var(--muted);text-align:center;padding:24px 0}
+
+/* CONFIG area */
+.config-row{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.config-row input{flex:1;min-width:200px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif}
+.config-row button{padding:9px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.config-row button:hover{background:var(--bg)}
+.config-row button.primary{background:var(--green);color:#fff;border-color:var(--green)}
+
+#status-note{font-size:12px;color:var(--muted);padding:4px 0}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>Bin It Right<br><span>Live Dashboard</span></h1>
+  <div class="live-dot"><div class="dot grey" id="dot"></div><span id="dot-label">Not connected</span></div>
+</div>
+
+<!-- SHEET URL INPUT -->
+<div class="config-row">
+  <input id="sheet-url-input" type="text" placeholder="Paste your Google Sheets JSON URL here (see setup guide below)…">
+  <button class="primary" onclick="connect()">Connect & Refresh</button>
+  <button onclick="loadDemo()">Load demo data</button>
+</div>
+<div id="status-note"></div>
+
+<!-- SETUP GUIDE -->
+<div id="setup-banner" style="display:block">
+  <h3>⚙ Setup: how to connect your Google Sheet</h3>
+  <p>
+    1. Open your Google Sheet → <b>Extensions → Apps Script</b><br>
+    2. Add this function to read data back as JSON:<br><br>
+    <code style="background:#f0ede6;padding:6px 10px;border-radius:6px;font-size:12px;display:block;margin:4px 0">
+function doGet(e){<br>
+&nbsp;&nbsp;const sheet=SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();<br>
+&nbsp;&nbsp;const rows=sheet.getDataRange().getValues();<br>
+&nbsp;&nbsp;const headers=rows[0];<br>
+&nbsp;&nbsp;const data=rows.slice(1).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]])));<br>
+&nbsp;&nbsp;return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);<br>
+}
+    </code><br>
+    3. <b>Deploy → New Deployment → Web App → Anyone → Deploy</b><br>
+    4. Copy the deployment URL and paste it above, then click Connect.
+  </p>
+</div>
+
+<!-- STAT CARDS -->
+<div class="stats">
+  <div class="stat"><label>Responses</label><div class="val" id="s-total">0</div></div>
+  <div class="stat"><label>Avg score</label><div class="val g" id="s-avg">—</div><div class="sub" id="s-avg-sub">out of 10</div></div>
+  <div class="stat"><label>Total contaminations</label><div class="val r" id="s-contam">0</div></div>
+  <div class="stat"><label>Know FOGO</label><div class="val y" id="s-fogo">—</div><div class="sub">use or heard of it</div></div>
+</div>
+
+<!-- CHARTS -->
+<div class="charts">
+  <div class="chart-card">
+    <h2>Score distribution</h2>
+    <canvas id="chart-scores"></canvas>
+  </div>
+  <div class="chart-card">
+    <h2>FOGO awareness</h2>
+    <canvas id="chart-fogo"></canvas>
+  </div>
+  <div class="chart-card">
+    <h2>Score vs FOGO awareness</h2>
+    <canvas id="chart-fogo-score"></canvas>
+  </div>
+  <div class="chart-card">
+    <h2>Contamination events by age</h2>
+    <canvas id="chart-age-contam"></canvas>
+  </div>
+</div>
+
+<!-- MOST CONFUSED ITEMS -->
+<div class="table-card">
+  <h2>Most contaminating items (wrong bin choices)</h2>
+  <table id="contam-table">
+    <thead><tr><th>Item</th><th>Contamination type</th><th>Count</th></tr></thead>
+    <tbody id="contam-tbody"><tr><td colspan="3" class="empty">No data yet</td></tr></tbody>
+  </table>
+</div>
+
+<!-- LIVE FEED -->
+<div class="feed-card">
+  <h2>Live response feed</h2>
+  <div class="feed" id="feed"><div class="empty">Waiting for responses…</div></div>
+</div>
+
+<script>
+let sheetUrl='';
+let refreshTimer=null;
+let charts={};
+
+// Chart.js defaults
+Chart.defaults.font.family="'DM Sans', sans-serif";
+Chart.defaults.color='#8a867c';
+
+const GREENS=['#22A84A','#4cc370','#7ed8a0','#a8e8bc'];
+const REDS=['#E63946','#f07070','#f8a8a8'];
+const YELLOWS=['#E89C00','#f4c060','#f8e0a0'];
+
+function connect(){
+  sheetUrl=document.getElementById('sheet-url-input').value.trim();
+  if(!sheetUrl){setStatus('Paste your deployment URL first.','#E89C00');return}
+  document.getElementById('setup-banner').style.display='none';
+  fetchData();
+  if(refreshTimer)clearInterval(refreshTimer);
+  refreshTimer=setInterval(fetchData,15000);
+}
+
+function setStatus(msg,color='#8a867c'){
+  const el=document.getElementById('status-note');
+  el.textContent=msg;el.style.color=color;
+}
+
+async function fetchData(){
+  if(!sheetUrl)return;
+  try{
+    const res=await fetch(sheetUrl);
+    const raw=await res.json();
+    // Handle both array-of-objects and raw 2D array
+    let rows=raw;
+    if(Array.isArray(raw[0])&&typeof raw[0][0]==='string'){
+      const headers=raw[0];
+      rows=raw.slice(1).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]])));
+    }
+    render(rows.filter(r=>r.timestamp||r.Timestamp));
+    document.getElementById('dot').className='dot';
+    document.getElementById('dot-label').textContent='Live — refreshes every 15s';
+    setStatus('Last updated: '+new Date().toLocaleTimeString(),'#22A84A');
+  }catch(err){
+    setStatus('Could not fetch data — check your URL and deployment settings.','#E63946');
+    document.getElementById('dot').className='dot grey';
+    document.getElementById('dot-label').textContent='Not connected';
+  }
+}
+
+function norm(row,key,...aliases){
+  for(const k of [key,...aliases]){if(row[k]!==undefined)return row[k]}return '';
+}
+
+function render(rows){
+  const total=rows.length;
+  document.getElementById('s-total').textContent=total;
+
+  if(!total){
+    document.getElementById('s-avg').textContent='—';
+    document.getElementById('s-contam').textContent='0';
+    document.getElementById('s-fogo').textContent='—';
+    renderFeed([]);return;
+  }
+
+  // Parse scores
+  const scores=rows.map(r=>parseInt(norm(r,'score','Score'))||0);
+  const avg=scores.reduce((a,b)=>a+b,0)/total;
+  document.getElementById('s-avg').textContent=avg.toFixed(1);
+
+  // Contamination
+  const totalContam=rows.reduce((a,r)=>a+(parseInt(norm(r,'contamCount','contamination events','Contamination Events'))||0),0);
+  document.getElementById('s-contam').textContent=totalContam;
+
+  // FOGO awareness
+  const fogoAware=rows.filter(r=>{const f=(norm(r,'fogoAwareness','FOGO Awareness')||'').toLowerCase();return f.includes('yes')||f.includes('heard')}).length;
+  document.getElementById('s-fogo').textContent=Math.round(fogoAware/total*100)+'%';
+
+  // Score distribution chart
+  const scoreBuckets=Array(11).fill(0);
+  scores.forEach(s=>scoreBuckets[Math.min(10,s)]++);
+  renderChart('chart-scores','bar',{
+    labels:['0','1','2','3','4','5','6','7','8','9','10'],
+    datasets:[{label:'Players',data:scoreBuckets,backgroundColor:scoreBuckets.map((_,i)=>i>=7?'#22A84A':i>=4?'#E89C00':'#E63946'),borderRadius:6,borderSkipped:false}]
+  },{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}});
+
+  // FOGO awareness chart
+  const fogoCounts={'Yes, I use one':0,'Heard of it':0,'No':0,'Not sure':0};
+  rows.forEach(r=>{const f=norm(r,'fogoAwareness','FOGO Awareness');if(fogoCounts[f]!==undefined)fogoCounts[f]++;else fogoCounts['Not sure']++});
+  renderChart('chart-fogo','doughnut',{
+    labels:Object.keys(fogoCounts),
+    datasets:[{data:Object.values(fogoCounts),backgroundColor:['#22A84A','#7ed8a0','#E63946','#f0a0a0'],borderWidth:0,hoverOffset:6}]
+  },{plugins:{legend:{position:'bottom'}}});
+
+  // Score vs FOGO
+  const fogoGroups={'Yes, I use one':[],'Heard of it':[],'No':[],'Not sure':[]};
+  rows.forEach(r=>{
+    const f=norm(r,'fogoAwareness','FOGO Awareness');
+    const s=parseInt(norm(r,'score','Score'))||0;
+    if(fogoGroups[f])fogoGroups[f].push(s);else fogoGroups['Not sure'].push(s);
+  });
+  const fogoAvgs=Object.entries(fogoGroups).map(([k,v])=>({label:k,avg:v.length?v.reduce((a,b)=>a+b,0)/v.length:0,n:v.length}));
+  renderChart('chart-fogo-score','bar',{
+    labels:fogoAvgs.map(f=>`${f.label}\n(n=${f.n})`),
+    datasets:[{label:'Avg score',data:fogoAvgs.map(f=>+f.avg.toFixed(2)),backgroundColor:['#22A84A','#7ed8a0','#E63946','#f0a0a0'],borderRadius:6,borderSkipped:false}]
+  },{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:10,ticks:{stepSize:2}}}});
+
+  // Contamination by age
+  const ages=['Under 18','18–24','25–34','35+'];
+  const ageContam={};ages.forEach(a=>{ageContam[a]={total:0,count:0}});
+  rows.forEach(r=>{
+    const a=norm(r,'ageGroup','Age Group');
+    const c=parseInt(norm(r,'contamCount','Contamination Events'))||0;
+    if(ageContam[a]){ageContam[a].total+=c;ageContam[a].count++}
+  });
+  renderChart('chart-age-contam','bar',{
+    labels:ages.map(a=>`${a}\n(n=${ageContam[a]?.count||0})`),
+    datasets:[{label:'Avg contaminations',data:ages.map(a=>ageContam[a]?.count?+(ageContam[a].total/ageContam[a].count).toFixed(2):0),backgroundColor:REDS[0],borderRadius:6,borderSkipped:false}]
+  },{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}});
+
+  // Most confused items table
+  const itemErrors={};
+  rows.forEach(r=>{
+    const ce=norm(r,'contamEvents','Contamination Events','contamination events');
+    if(!ce||ce==='None')return;
+    ce.split('|').forEach(ev=>{
+      ev=ev.trim();
+      if(!ev)return;
+      const match=ev.match(/^(.+?)\s*\[(.+?)\]$/);
+      if(match){const key=match[1].trim();const type=match[2].trim();itemErrors[key]=(itemErrors[key]||{});itemErrors[key][type]=(itemErrors[key][type]||0)+1}
+    });
+  });
+  const sorted=Object.entries(itemErrors).map(([item,types])=>({item,types,total:Object.values(types).reduce((a,b)=>a+b,0)})).sort((a,b)=>b.total-a.total).slice(0,10);
+  const tbody=document.getElementById('contam-tbody');
+  if(!sorted.length){tbody.innerHTML='<tr><td colspan="3" class="empty">No contamination events yet</td></tr>';} 
+  else {
+    tbody.innerHTML=sorted.map(({item,types,total})=>{
+      const typeTags=Object.entries(types).map(([t,n])=>{
+        const bad=t.includes('→recycling')||t.includes('→organics');
+        return `<span class="tag ${bad?'c':'w'}">${t} ×${n}</span>`;
+      }).join(' ');
+      return `<tr><td><b>${item}</b></td><td>${typeTags}</td><td><b>${total}</b></td></tr>`;
+    }).join('');
+  }
+
+  renderFeed(rows);
+}
+
+function renderFeed(rows){
+  const feed=document.getElementById('feed');
+  if(!rows.length){feed.innerHTML='<div class="empty">Waiting for responses…</div>';return}
+  const sorted=[...rows].sort((a,b)=>new Date(norm(b,'timestamp','Timestamp'))-new Date(norm(a,'timestamp','Timestamp')));
+  feed.innerHTML=sorted.slice(0,20).map(r=>{
+    const score=parseInt(norm(r,'score','Score'))||0;
+    const age=norm(r,'ageGroup','Age Group')||'?';
+    const fogo=norm(r,'fogoAwareness','FOGO Awareness')||'?';
+    const cc=parseInt(norm(r,'contamCount','Contamination Events'))||0;
+    const ts=norm(r,'timestamp','Timestamp');
+    const time=ts?new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+    const cls=score>=7?'high':score>=4?'mid':'low';
+    return `<div class="feed-row">
+      <div class="feed-score ${cls}">${score}/10</div>
+      <div class="feed-meta"><b>${age}</b> · FOGO: ${fogo} · ${cc} contamination${cc!==1?'s':''}</div>
+      <div class="feed-time">${time}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderChart(id,type,data,options){
+  const canvas=document.getElementById(id);
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart(canvas,{type,data,options:{responsive:true,maintainAspectRatio:true,...options}});
+}
+
+function loadDemo(){
+  const names=['Coffee cup (takeaway)','Banana peel','Greasy pizza box','Chip wrapper','Glass jar (empty)','Plastic bottle','Garden leaves'];
+  const fogoOpts=['Yes, I use one','Heard of it','No','Not sure'];
+  const ages=['Under 18','18–24','18–24','25–34','35+'];
+  const demo=Array.from({length:24},(_,i)=>{
+    const score=Math.floor(Math.random()*7)+3;
+    const cc=Math.floor(Math.random()*4);
+    const contams=Array.from({length:cc},()=>`${names[Math.floor(Math.random()*names.length)]} [organic→recycling]`).join(' | ')||'None';
+    return {timestamp:new Date(Date.now()-i*180000).toISOString(),ageGroup:ages[Math.floor(Math.random()*ages.length)],fogoAwareness:fogoOpts[Math.floor(Math.random()*fogoOpts.length)],score,wrongCount:10-score,contamCount:cc,wrongDecisions:'None',contamEvents:contams,device:'Mobile'};
+  });
+  render(demo);
+  document.getElementById('dot').className='dot';
+  document.getElementById('dot-label').textContent='Demo mode';
+  setStatus('Showing demo data — connect your sheet to see real responses.','#E89C00');
+}
+</script>
+</body>
+</html>
